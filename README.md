@@ -1,2 +1,2 @@
-# go-log-as-struct
-Logs as structured-files (as JSON, XML, TOML, ...)
+# go-logging-maps
+Log as structured data (like JSON, XML, TOML, ...)
