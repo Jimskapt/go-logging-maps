@@ -15,7 +15,7 @@ func SetParser(parser Parser) {
 	declaredParser = parser
 }
 
-// SetOutput sets on whick file we write logs.
+// SetOutput sets on which file we write logs.
 // It need read rights on this file, because we need to check if it is already empty or not (in order to add a separator).
 func SetOutput(file *os.File) {
 
@@ -38,7 +38,8 @@ func SetOutput(file *os.File) {
 	output = bufio.NewWriter(file)
 }
 
-// LogString log the message and flags. It a simplified form of Log() function.
+// LogString log the message and flags.
+// It is a simplified form of Log() function.
 func LogString(message string, flags ...string) error {
 
 	data := map[string]interface{}{}
@@ -48,7 +49,7 @@ func LogString(message string, flags ...string) error {
 	return Log(data)
 }
 
-// Parse data with the Parser and write this inside the output.
+// Log is parsing data with the Parser and write this inside the output.
 // Need at least to use SetParser() and SetOutput() before calling this function.
 func Log(data map[string]interface{}) error {
 
