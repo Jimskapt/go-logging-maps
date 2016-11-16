@@ -1,40 +1,82 @@
 package loggingmaps
 
-import "bufio"
+import (
+	"bufio"
+	"os"
+)
 
-func SetParser(parser Parser) error {
-	return nil
+// See ./parsers.go for Parser & it instances (JSONParser)
+var declaredParser Parser
+var output *bufio.Writer
+var isEmptyFile bool
+
+// SetParser sets how data will be write (JSON ? XML ? TOML ? ...) on the output, thank to a Parser.
+func SetParser(parser Parser) {
+	declaredParser = parser
 }
 
-func SetOutput(writer *bufio.Writer) error {
-	return nil
+// SetOutput sets on whick file we write logs.
+// It need read rights on this file, because we need to check if it is already empty or not (in order to add a separator).
+func SetOutput(file *os.File) {
+
+	// check if file is empty or not.
+	// if there is just one \n or \r in the file, it is also judged as empty.
+	scanner := bufio.NewScanner(bufio.NewReader(file))
+	scanner.Split(bufio.ScanRunes)
+	notEmpty := scanner.Scan()
+	if notEmpty {
+		if (scanner.Text() == "\n" || scanner.Text() == "\r") && scanner.Scan() == false {
+			isEmptyFile = true
+		} else {
+			isEmptyFile = false
+		}
+	} else {
+		isEmptyFile = true
+	}
+
+	// only save a writer to file
+	output = bufio.NewWriter(file)
 }
 
+// LogString log the message and flags. It a simplified form of Log() function.
 func LogString(message string, flags ...string) error {
-	return nil
+
+	data := map[string]interface{}{}
+	data["message"] = message
+	data["flags"] = flags
+
+	return Log(data)
 }
 
+// Parse data with the Parser and write this inside the output.
+// Need at least to use SetParser() and SetOutput() before calling this function.
 func Log(data map[string]interface{}) error {
-	return nil
-}
 
-type Parser interface {
-	Parse(data []byte) (map[string]interface{}, error)
-	Unparse(data map[string]interface{}) ([]byte, error)
-}
+	bytes, err := declaredParser.Unparse(data)
+	if err != nil {
+		return err
+	}
 
-type JSONParser struct {
-	Pretify   bool
-	Identchar string
-}
+	if !isEmptyFile {
+		_, err = output.Write([]byte(declaredParser.EntrySeparator()))
+		if err != nil {
+			return err
+		}
+	}
 
-func (p JSONParser) Parse(data []byte) (map[string]interface{}, error) {
-	result := map[string]interface{}{}
+	_, err = output.Write(bytes)
+	if err != nil {
+		return err
+	}
 
-	return result, nil
-}
-func (p JSONParser) Unparse(data map[string]interface{}) ([]byte, error) {
-	result := []byte{}
+	err = output.Flush()
+	if err != nil {
+		return err
+	}
 
-	return result, nil
+	if isEmptyFile {
+		isEmptyFile = false
+	}
+
+	return err
 }
