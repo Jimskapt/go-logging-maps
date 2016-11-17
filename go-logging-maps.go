@@ -9,6 +9,7 @@ import (
 var declaredParser Parser
 var output *bufio.Writer
 var isEmptyFile bool
+var autoFields = map[string](func() string){}
 
 // SetParser sets how data will be write (JSON ? XML ? TOML ? ...) on the output, thank to a Parser.
 func SetParser(parser Parser) {
@@ -46,12 +47,40 @@ func LogString(message string, flags ...string) error {
 	data["message"] = message
 	data["flags"] = flags
 
+	addAutoFields(data)
+
 	return Log(data)
+}
+
+func SetAutoFields(fields map[string](func() string)) {
+	for key, val := range fields {
+		autoFields[key] = val
+	}
+}
+
+func generateAutoFields() map[string]string {
+	result := map[string]string{}
+
+	for key, function := range autoFields {
+		result[key] = function()
+	}
+
+	return result
+}
+
+func addAutoFields(data map[string]interface{}) {
+	for key, value := range generateAutoFields() {
+		if data[key] == nil {
+			data[key] = value
+		}
+	}
 }
 
 // Log is parsing data with the Parser and write this inside the output.
 // Need at least to use SetParser() and SetOutput() before calling this function.
 func Log(data map[string]interface{}) error {
+
+	addAutoFields(data)
 
 	bytes, err := declaredParser.Unparse(data)
 	if err != nil {
