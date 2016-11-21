@@ -7,6 +7,8 @@ type Parser interface {
 	Parse(data []byte) (map[string]interface{}, error)
 	Unparse(data map[string]interface{}) ([]byte, error)
 	EntrySeparator() string
+	RootOpenElement() string
+	RootCloseElement() string
 }
 
 // JSONParser is the JSON Parser
@@ -25,7 +27,7 @@ func (p JSONParser) Parse(data []byte) (map[string]interface{}, error) {
 
 func (p JSONParser) Unparse(data map[string]interface{}) ([]byte, error) {
 	if p.Pretify {
-		return json.MarshalIndent(data, "", p.IdentChar)
+		return json.MarshalIndent(data, "\t", p.IdentChar)
 	}
 
 	return json.Marshal(data)
@@ -33,8 +35,24 @@ func (p JSONParser) Unparse(data map[string]interface{}) ([]byte, error) {
 
 func (p JSONParser) EntrySeparator() string {
 	if p.Pretify {
-		return ",\n"
+		return ",\n\t"
 	}
 
 	return ","
+}
+
+func (p JSONParser) RootOpenElement() string {
+	if p.Pretify {
+		return "[\n\t"
+	}
+
+	return "["
+}
+
+func (p JSONParser) RootCloseElement() string {
+	if p.Pretify {
+		return "\n]"
+	}
+
+	return "]"
 }

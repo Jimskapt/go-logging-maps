@@ -7,7 +7,7 @@ import (
 
 // See ./parsers.go for Parser & it instances (JSONParser)
 var declaredParser Parser
-var output *bufio.Writer
+var output *os.File
 var isEmptyFile bool
 var autoFields = map[string](func() string){}
 
@@ -18,10 +18,15 @@ func SetParser(parser Parser) {
 
 // SetOutput sets on which file we write logs.
 // It need read rights on this file, because we need to check if it is already empty or not (in order to add a separator).
-func SetOutput(file *os.File) {
+func SetOutput(filepath string) error {
 
 	// check if file is empty or not.
 	// if there is just one \n or \r in the file, it is also judged as empty.
+	file, err := os.OpenFile(filepath, os.O_RDONLY, 0666)
+	if err != nil {
+		return err
+	}
+
 	scanner := bufio.NewScanner(bufio.NewReader(file))
 	scanner.Split(bufio.ScanRunes)
 	notEmpty := scanner.Scan()
@@ -36,7 +41,12 @@ func SetOutput(file *os.File) {
 	}
 
 	// only save a writer to file
-	output = bufio.NewWriter(file)
+	output, err = os.OpenFile(filepath, os.O_WRONLY, 0666)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // LogString log the message and flags.
@@ -87,19 +97,21 @@ func Log(data map[string]interface{}) error {
 		return err
 	}
 
+	closer := ""
 	if !isEmptyFile {
-		_, err = output.Write([]byte(declaredParser.EntrySeparator()))
-		if err != nil {
-			return err
-		}
+		bytes = append([]byte(declaredParser.EntrySeparator()), bytes...)
+		closer = declaredParser.RootCloseElement()
+	} else {
+		bytes = append([]byte(declaredParser.RootOpenElement()), bytes...)
 	}
+	bytes = append(bytes, []byte(declaredParser.RootCloseElement())...)
 
-	_, err = output.Write(bytes)
+	fi, err := output.Stat()
 	if err != nil {
 		return err
 	}
 
-	err = output.Flush()
+	_, err = output.WriteAt(bytes, fi.Size()-int64(len(([]byte)(closer))))
 	if err != nil {
 		return err
 	}

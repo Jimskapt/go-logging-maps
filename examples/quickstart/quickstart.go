@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"runtime"
 	"strconv"
 	"time"
@@ -29,26 +28,24 @@ func main() {
 	}
 	log.SetAutoFields(autofields)
 
-	// comment the following line to append logs in existing file :
-	os.Create("./log.json")
-	file, _ := os.OpenFile("./log.json", os.O_APPEND|os.O_RDWR, 0600)
-	defer file.Close()
-	log.SetOutput(file)
+	log.SetOutput("./log.json")
 
 	fmt.Println(log.LogString("First start as quickstart.", "INIT", "START", "quickstart"))
 	/*
-		Returns nil and writes in ./log.json :
-		{
-			"date": "2016-11-17T20:26:42Z",
-			"file": "[your GOPATH]/src/github.com/Jimskapt/go-logging-maps/examples/quickstart/quickstart.go",
-			"flags": [
-				"INIT",
-				"START",
-				"quickstart"
-			],
-			"line": "38",
-			"message": "First start as quickstart."
-		}
+		Returns <nil> and writes in ./log.json :
+		[
+			{
+				"date": "2016-11-17T20:26:42Z",
+				"file": "[your GOPATH]/src/github.com/Jimskapt/go-logging-maps/examples/quickstart/quickstart.go",
+				"flags": [
+					"INIT",
+					"START",
+					"quickstart"
+				],
+				"line": "38",
+				"message": "First start as quickstart."
+			}
+		]
 	*/
 
 	name := "unknown.json"
@@ -60,19 +57,21 @@ func main() {
 
 	fmt.Println(log.Log(data))
 	/*
-		Returns nil and writes in ./log.json :
-		,
-		{
-			"date": "2016-11-17T20:26:42Z",
-			"file": "[your GOPATH]/src/github.com/Jimskapt/go-logging-maps/examples/quickstart/quickstart.go",
-			"file_name": "unknown.json",
-			"flags": [
-				"404",
-				"INIT",
-				"unknown.json"
-			],
-			"line": "61",
-			"message": "The file {{.FileName}} was not found."
-		}
+		Returns <nil> and writes in ./log.json :
+			,
+			{
+				"date": "2016-11-17T20:26:42Z",
+				"file": "[your GOPATH]/src/github.com/Jimskapt/go-logging-maps/examples/quickstart/quickstart.go",
+				"file_name": "unknown.json",
+				"flags": [
+					"404",
+					"INIT",
+					"unknown.json"
+				],
+				"line": "61",
+				"message": "The file {{.FileName}} was not found."
+			}
+		]
+		(this data overwrites the "\n]", which is already exists in log.json - from previous example -)
 	*/
 }
