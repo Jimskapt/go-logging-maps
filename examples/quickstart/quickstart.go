@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"runtime"
 	"strconv"
 	"time"
@@ -13,7 +14,7 @@ func main() {
 
 	log.SetParser(log.JSONParser{Pretify: true, IdentChar: "\t"})
 
-	autofields := map[string](func() string){
+	log.Autofields = map[string](func() string){
 		"file": func() string {
 			_, file, _, _ := runtime.Caller(4)
 			return file
@@ -26,9 +27,13 @@ func main() {
 			return time.Now().UTC().Format(time.RFC3339)
 		},
 	}
-	log.SetAutoFields(autofields)
 
-	log.SetOutput("./log.json")
+	// comment the following line to append logs in the file :
+	os.Create("./log.json")
+
+	fmt.Println(log.SetOutput("./log.json"))
+
+	fmt.Println("//////////////////////////////")
 
 	fmt.Println(log.LogString("First start as quickstart.", "INIT", "START", "quickstart"))
 	/*
@@ -48,6 +53,8 @@ func main() {
 		]
 	*/
 
+	fmt.Println("//////////////////////////////")
+
 	name := "unknown.json"
 	data := map[string]interface{}{
 		"message":   "The file {{.FileName}} was not found.",
@@ -56,6 +63,7 @@ func main() {
 	}
 
 	fmt.Println(log.Log(data))
+
 	/*
 		Returns <nil> and writes in ./log.json :
 			,
@@ -68,7 +76,7 @@ func main() {
 					"INIT",
 					"unknown.json"
 				],
-				"line": "61",
+				"line": "65",
 				"message": "The file {{.FileName}} was not found."
 			}
 		]
