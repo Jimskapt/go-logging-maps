@@ -14,16 +14,16 @@ func main() {
 
 	log.SetParser(log.JSONParser{Pretify: true, IdentChar: "\t"})
 
-	log.Autofields = map[string](func() string){
-		"file": func() string {
+	log.Autofields = map[string](func(map[string]interface{}) string){
+		"file": func(data map[string]interface{}) string {
 			_, file, _, _ := runtime.Caller(4)
 			return file
 		},
-		"line": func() string {
+		"line": func(data map[string]interface{}) string {
 			_, _, line, _ := runtime.Caller(4)
 			return strconv.Itoa(line)
 		},
-		"date": func() string {
+		"date": func(data map[string]interface{}) string {
 			return time.Now().UTC().Format(time.RFC3339)
 		},
 	}

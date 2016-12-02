@@ -9,7 +9,7 @@ import (
 var declaredParser Parser
 var output *os.File
 var isEmptyFile bool
-var Autofields = map[string](func() string){}
+var Autofields = map[string](func(map[string]interface{}) string){}
 
 // SetParser sets how data will be write (JSON ? XML ? TOML ? ...) on the output, thank to a Parser.
 func SetParser(parser Parser) {
@@ -62,18 +62,18 @@ func LogString(message string, flags ...string) error {
 	return Log(data)
 }
 
-func generateAutoFields() map[string]string {
+func generateAutoFields(data map[string]interface{}) map[string]string {
 	result := map[string]string{}
 
 	for key, function := range Autofields {
-		result[key] = function()
+		result[key] = function(data)
 	}
 
 	return result
 }
 
 func addAutoFields(data map[string]interface{}) {
-	for key, value := range generateAutoFields() {
+	for key, value := range generateAutoFields(data) {
 		if data[key] == nil {
 			data[key] = value
 		}

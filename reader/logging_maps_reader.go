@@ -4,9 +4,14 @@ import "github.com/gizak/termui"
 
 var pointer = -1
 var flagSelector = false
-var flags []string
-var flagsButtons []*termui.Par
+var flags []Flag
 var logList *termui.List
+
+type Flag struct {
+	Name      string
+	Activated bool
+	Button    *termui.Par
+}
 
 func main() {
 
@@ -18,20 +23,25 @@ func main() {
 
 	defer termui.Close()
 
-	flags = []string{
+	flagsLabels := []string{
 		"INIT",
 		"ERROR",
 		"404",
 		"WARNING",
 		"127.0.0.1",
+		"1", "2", "3", "4", "5", "6", "7", "8",
 	}
-	flagsButtons = make([]*termui.Par, 5)
+	flags = make([]Flag, len(flagsLabels))
 
-	//x := 0
-	for i, label := range flags {
-		flagsButtons[i] = termui.NewPar(label)
-		flagsButtons[i].TextFgColor = termui.ColorWhite
-		flagsButtons[i].Height = 3
+	for i, flag := range flagsLabels {
+		flags[i] = Flag{
+			Name:      flag,
+			Activated: true,
+			Button:    termui.NewPar(flag),
+		}
+		flags[i].Button.TextFgColor = termui.ColorWhite
+		flags[i].Button.Height = 3
+		flags[i].Button.Width = len(flag)
 	}
 
 	logs := []string{
@@ -70,29 +80,38 @@ func main() {
 
 			setBody()
 			termui.Render(termui.Body)
+		} else {
+
+			flags[pointer].Activated = !flags[pointer].Activated
+			setBody()
+			termui.Render(termui.Body)
 		}
 	})
 
 	termui.Handle("/sys/kbd/d", func(termui.Event) {
-		pointer++
+		if flagSelector {
+			pointer++
 
-		if pointer > 4 {
-			pointer = 4
+			if pointer > len(flags) {
+				pointer = len(flags)
+			}
+
+			setBody()
+			termui.Render(termui.Body)
 		}
-
-		setBody()
-		termui.Render(termui.Body)
 	})
 
 	termui.Handle("/sys/kbd/q", func(termui.Event) {
-		pointer--
+		if flagSelector {
+			pointer--
 
-		if pointer < -1 {
-			pointer = -1
+			if pointer < -1 {
+				pointer = -1
+			}
+
+			setBody()
+			termui.Render(termui.Body)
 		}
-
-		setBody()
-		termui.Render(termui.Body)
 	})
 
 	termui.Loop()
@@ -104,11 +123,25 @@ func setBody() {
 
 		for i := range flags {
 			if i == pointer {
-				flagsButtons[i].BorderFg = termui.ColorYellow
-				flagsButtons[i].TextFgColor = termui.ColorYellow
+				flags[i].Button.BorderFg = termui.ColorYellow
+
+				if flags[i].Activated {
+					flags[i].Button.TextBgColor = termui.ColorYellow
+					flags[i].Button.TextFgColor = termui.ColorBlack
+				} else {
+					flags[i].Button.TextBgColor = termui.ColorBlack
+					flags[i].Button.TextFgColor = termui.ColorYellow
+				}
 			} else {
-				flagsButtons[i].BorderFg = termui.ColorWhite
-				flagsButtons[i].TextFgColor = termui.ColorWhite
+				flags[i].Button.BorderFg = termui.ColorWhite
+
+				if flags[i].Activated {
+					flags[i].Button.TextBgColor = termui.ColorWhite
+					flags[i].Button.TextFgColor = termui.ColorBlack
+				} else {
+					flags[i].Button.TextBgColor = termui.ColorBlack
+					flags[i].Button.TextFgColor = termui.ColorWhite
+				}
 			}
 		}
 
@@ -122,27 +155,21 @@ func setBody() {
 		}
 		back.Height = 3
 
+		max := len(flags)
+		if len(flags) > 11 {
+			max = 11
+		}
+		cols := make([]*termui.Row, max+1)
+		cols[0] = termui.NewCol(1, 0, back)
+		for i, flag := range flags {
+			cols[i+1] = termui.NewCol(1, 0, flag.Button)
+			if i+1 >= 11 {
+				break
+			}
+		}
+
 		termui.Body.AddRows(
-			termui.NewRow(
-				termui.NewCol(1, 0,
-					back,
-				),
-				termui.NewCol(2, 0,
-					flagsButtons[0],
-				),
-				termui.NewCol(2, 0,
-					flagsButtons[1],
-				),
-				termui.NewCol(2, 0,
-					flagsButtons[2],
-				),
-				termui.NewCol(2, 0,
-					flagsButtons[3],
-				),
-				termui.NewCol(2, 0,
-					flagsButtons[4],
-				),
-			),
+			termui.NewRow(cols...),
 			termui.NewRow(
 				termui.NewCol(12, 0, logList),
 			),
