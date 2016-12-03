@@ -1,6 +1,14 @@
 package main
 
-import "github.com/gizak/termui"
+import (
+	"bufio"
+	"bytes"
+	"encoding/json"
+	"io/ioutil"
+	"log"
+
+	"github.com/gizak/termui"
+)
 
 var pointer = -1
 var flagSelector = false
@@ -13,6 +21,10 @@ type Flag struct {
 	Button    *termui.Par
 }
 
+type Log struct {
+	Flags []string `json:"flags"`
+}
+
 func main() {
 
 	err := termui.Init()
@@ -23,13 +35,30 @@ func main() {
 
 	defer termui.Close()
 
+	fileData, err := ioutil.ReadFile("./log.json")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var parsedLogs []Log
+	err = json.Unmarshal(fileData, &parsedLogs)
+	if err != nil {
+		panic(err)
+	}
+
+	logs := []string{}
+	scanner := bufio.NewScanner(bytes.NewReader(fileData))
+	scanner.Split(bufio.ScanLines)
+	for scanner.Scan() {
+		logs = append(logs, scanner.Text())
+	}
+
 	flagsLabels := []string{
 		"INIT",
 		"ERROR",
 		"404",
 		"WARNING",
 		"127.0.0.1",
-		"1", "2", "3", "4", "5", "6", "7", "8",
 	}
 	flags = make([]Flag, len(flagsLabels))
 
@@ -44,7 +73,7 @@ func main() {
 		flags[i].Button.Width = len(flag)
 	}
 
-	logs := []string{
+	/*logs := []string{
 		" Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
 		" In aliquet eu metus et bibendum.",
 		" Aliquam viverra convallis libero, ut accumsan leo faucibus id.",
@@ -56,7 +85,7 @@ func main() {
 		" Nullam sagittis aliquam mi sed fringilla.",
 		" Curabitur ligula sem, lacinia auctor massa tempus, vulputate feugiat metus.",
 		" Sed et lobortis eros.",
-	}
+	}*/
 
 	logList = termui.NewList()
 	logList.Items = logs
@@ -64,15 +93,9 @@ func main() {
 	logList.BorderLabel = "Logs"
 	logList.Height = len(logs)
 
-	//termui.Render(l)
-
 	setBody()
 
 	termui.Render(termui.Body)
-
-	termui.Handle("/sys/kbd/C-c", func(termui.Event) {
-		termui.StopLoop()
-	})
 
 	termui.Handle("/sys/kbd/<enter>", func(termui.Event) {
 		if pointer == -1 {
@@ -81,40 +104,64 @@ func main() {
 			setBody()
 			termui.Render(termui.Body)
 		} else {
-
 			flags[pointer].Activated = !flags[pointer].Activated
 			setBody()
 			termui.Render(termui.Body)
 		}
 	})
 
-	termui.Handle("/sys/kbd/d", func(termui.Event) {
-		if flagSelector {
-			pointer++
+	termui.Handle("/sys/kbd/C-c", escape)
+	termui.Handle("/sys/kbd/<escape>", escape)
 
-			if pointer > len(flags) {
-				pointer = len(flags)
-			}
+	termui.Handle("/sys/kbd/<right>", rightButton)
+	termui.Handle("/sys/kbd/d", rightButton)
 
-			setBody()
-			termui.Render(termui.Body)
-		}
-	})
-
-	termui.Handle("/sys/kbd/q", func(termui.Event) {
-		if flagSelector {
-			pointer--
-
-			if pointer < -1 {
-				pointer = -1
-			}
-
-			setBody()
-			termui.Render(termui.Body)
-		}
-	})
+	termui.Handle("/sys/kbd/<left>", leftButton)
+	termui.Handle("/sys/kbd/q", leftButton)
 
 	termui.Loop()
+}
+
+func rightButton(e termui.Event) {
+	if flagSelector {
+		pointer++
+
+		if pointer > len(flags)-1 {
+			pointer = len(flags) - 1
+		}
+
+		setBody()
+		termui.Render(termui.Body)
+	}
+}
+
+func leftButton(e termui.Event) {
+	if flagSelector {
+		pointer--
+
+		if pointer < -1 {
+			pointer = -1
+		}
+
+		setBody()
+		termui.Render(termui.Body)
+	}
+}
+
+func escape(e termui.Event) {
+	if e.Path == "/sys/kbd/<escape>" {
+		if flagSelector {
+			flagSelector = false
+			pointer = -1
+
+			setBody()
+			termui.Render(termui.Body)
+		} else {
+			termui.StopLoop()
+		}
+	} else {
+		termui.StopLoop()
+	}
 }
 
 func setBody() {
